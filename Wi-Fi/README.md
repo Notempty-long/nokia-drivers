@@ -70,9 +70,9 @@ CONFIG_MTK_COMBO_GPS=y
 CONFIG_CFG80211=y
 ```
 
-## The blocker: driver source is not in this tree
+## The blocker: the driver lives outside the kernel tree, by design
 
-`drivers/misc/mediatek/connectivity/` contains only:
+`drivers/misc/mediatek/connectivity/` contains only adapter shims:
 
 ```
 Kconfig
@@ -87,11 +87,32 @@ There is **no** `gen4m/`, no `wmt_drv`, no `wlan_drv_gen4m` anywhere in the tree
 (searched by filename — zero hits). `drivers/net/wireless/mediatek/` holds only
 mac80211 `mt76` and `mt7601u`, which are unrelated to this phone.
 
-So `CONFIG_MTK_COMBO_WIFI=y` is set against an adapter shim with no driver behind
-it. The real driver lives in the separate MTK module tree
-(`vendor/mediatek/kernel_modules/connectivity/…`) or in Nokia's product kernel
-source. **Nothing in this repo can be built or tested for Wi-Fi until that tree is
-obtained.**
+The tree's own `connectivity/Makefile` says exactly where it went:
+
+```make
+# Do Nothing, move to standalone repo
+MODULE_NAME := connadp
+...
+ifeq ($(CONFIG_WLAN_DRV_BUILD_IN),y)
+    PATH_TO_WMT_DRV      = vendor/mediatek/kernel_modules/connectivity/common
+    PATH_TO_WLAN_CHR_DRV = vendor/mediatek/kernel_modules/connectivity/wlan/adaptor
+    PATH_TO_WLAN_DRV     = vendor/mediatek/kernel_modules/connectivity/wlan/core/gen4m
+```
+
+So the gen4m driver was moved out of `kernel/` into the Android **vendor** module
+tree (`vendor/mediatek/kernel_modules/connectivity/wlan/core/gen4m`). It is not part
+of the kernel tarball and not part of this repo's source drop either.
+
+This was re-checked against the public **Nokia 2.3 V3.311** source tarball
+(`https://nokiaphones-opensource.azureedge.net/.../Nokia2.3_V3.311.tar.bz2`,
+Linux 4.19.127, 951 MB extracted) — see `../KERNEL_SOURCE.md`. The archive confirms
+the shim-only layout, so **no rebuild of this kernel can produce
+`wlan_drv_gen4m.ko`**.
+
+Consequence: Wi-Fi is the one block the vendor tarball cannot fix. The phone's working
+binary is `/vendor/lib/modules/wlan_drv_gen4m.ko`; recovering source means obtaining
+the vendor `kernel_modules` tree (or an equivalent MT6761 gen4m tree from another
+device), not the kernel one.
 
 ## Minimal module
 

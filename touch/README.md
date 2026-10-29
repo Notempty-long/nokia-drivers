@@ -173,6 +173,15 @@ exactly:
 **is** the production source for this phone's touch stack, IC-specific file
 `himax_ic_HX83102.c` included.
 
+The source comes from the public **Nokia 2.3 V3.311** tarball; provenance, tree path
+and the exact config symbols to enable (`TOUCHSCREEN_HIMAX_CHIPSET`,
+`..._COMMON`, `..._INCELL`, `..._IC_HX83102`) are in `../KERNEL_SOURCE.md`. The
+`himax_mmi` module loads `Himax_firmware.bin` from `/vendor/firmware` at runtime, so
+the embedded-firmware option stays off unless you want the blob linked in.
+
+That means the stub below is **superseded by working code**: for a functional touch
+stack, enable the vendor driver instead of loading `hx83102_fw.ko`.
+
 What the BSP still lacks is only the product DTS wiring: no Himax node exists in any
 `arch/arm64/boot/dts/mediatek/*.dts{,i}`, and both
 `cust_mt6761_touch_{720x1280,1080x1920}.dtsi` point at `goodix,gt1151`, whose driver

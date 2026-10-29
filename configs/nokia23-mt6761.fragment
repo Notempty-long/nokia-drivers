@@ -1,0 +1,51 @@
+# Config fragment for Nokia 2.3 (TA-1206, MT6761 / k61v1_64_bsp)
+#
+# Symbols required by the *vendor* drivers that already exist in the
+# Nokia 2.3 V3.311 kernel tree. See ../KERNEL_SOURCE.md for the paths and the
+# line-level evidence behind each block.
+#
+# NOT VERIFIED: nothing here has been compiled. No arm64 toolchain exists on the
+# development host, so this fragment is derived from the driver sources and their
+# Kconfig files, not from a working .config. Expect to iterate once a build host
+# exists.
+#
+# Use:
+#   scripts/kconfig/merge_config.sh -m arch/arm64/configs/k61v1_64_bsp_defconfig \
+#       configs/nokia23-mt6761.fragment
+#   make ARCH=arm64 olddefconfig
+#
+# Note: this phone's product defconfig (T99621AA1) is NOT in the public tarball.
+# This fragment is not a product defconfig; it only enables the four subsystems
+# this repo covers.
+
+# --- touch: Himax HX83102D over SPI2 (drivers/input/touchscreen/mediatek/hxchipset)
+CONFIG_TOUCHSCREEN_HIMAX_CHIPSET=y
+CONFIG_TOUCHSCREEN_HIMAX_COMMON=y
+CONFIG_TOUCHSCREEN_HIMAX_INCELL=y
+CONFIG_TOUCHSCREEN_HIMAX_IC_HX83102=y
+# The phone loads Himax_firmware.bin from /vendor/firmware at runtime; the
+# embedded-firmware path (-D__EMBEDDED_FW__, links Himax_firmware.bin into the
+# module) is therefore not used here. Flip to =y to bake the blob in instead.
+# CONFIG_TOUCHSCREEN_HIMAX_EMBEDDED_FIRMWARE is not set
+
+# --- charger: ETA6937, driven by the bq24157 driver (drivers/power/supply)
+CONFIG_MTK_BQ24157_SUPPORT=y
+# The mainline TI driver is a different driver for a different part; leave it off
+# or it will contend for the same I2C address.
+# CONFIG_CHARGER_BQ2415X is not set
+
+# --- PMIC / gauge / charger framework (drivers/power/supply)
+CONFIG_MTK_CHARGER=y
+
+# --- audio: MT6357 codec on the shared common_int machine driver
+CONFIG_MTK_SND_SOC_NEW_ARCH=y
+CONFIG_MTK_SND_SOC_CODEC="mt6357"
+CONFIG_SND_SOC_MTK_BTCVSD=y
+
+# --- Wi-Fi: MT6631 combo behind consys
+# These enable the in-tree adapter shim only. The gen4m driver body is NOT in the
+# kernel tree - it lives in vendor/mediatek/kernel_modules/connectivity/wlan/core/gen4m
+# and must be present for this to produce anything. See KERNEL_SOURCE.md.
+CONFIG_MTK_COMBO=y
+CONFIG_MTK_COMBO_CHIP_CONSYS_6761=y
+CONFIG_MTK_COMBO_CHIP="CONSYS_6761"

@@ -60,12 +60,34 @@ CONFIG_MTK_BQ24157_SUPPORT=y
 CONFIG_MFD_MT6370_PMU=y  (+ CHARGER/FLED/BLED/LDO/DSV)
 ```
 
-## Mismatch to be aware of
+## The ETA6937 driver is in this tree
 
-The reference `.config` does **not** build `bq2415x_charger.c`, yet the live device
-runs a bq2415x-family driver. Nokia's build therefore differs from this tree's
-config in the charger area, most likely by enabling `CONFIG_CHARGER_BQ2415X` (or a
-patched ETA6937 variant of it) in the product defconfig.
+Earlier notes suspected the tree's charger config did not match the phone. It does.
+The ETA6937 support lives **inside `bq24157_charger.c`**, alongside the BQ24157 and
+HL7057 variants:
+
+```c
+/* drivers/power/supply/bq24157_charger.c */
+#define ETA6937_RE  4                                   /* :52  */
+#define ETA6937     1                                   /* :55  */
+static int eta6937_reinit(struct bq2415x *bq);           /* :156 */
+/* distinguish which charger ic we use,vendor:ETA6937,BQ24157,HL7057  (:164) */
+```
+
+That is why the kernel log shows the `[bq2415x]` tag on `eta6937_*` functions — one
+driver, several IC variants, selected at runtime.
+
+Config:
+
+```
+CONFIG_MTK_BQ24157_SUPPORT=y     <- the one to enable (Kconfig:811)
+CONFIG_CHARGER_BQ2415X is not set <- mainline TI driver, different part, leave off
+CONFIG_MFD_MT6370_PMU=y  (+ CHARGER/FLED/BLED/LDO/DSV)
+```
+
+`CONFIG_MTK_BQ24157_SUPPORT` is already set in the tree's `T99652AA1_defconfig`
+(the other WingTech board), which is a useful template even though this phone's own
+defconfig is not in the tarball. See `../KERNEL_SOURCE.md`.
 
 Also loaded on the device: the whole `mt6370_pmu_*` module set
 (`mt6370_pmu_charger`, `_fled`, `_bled`, `_ldo`, `_dsv`, `_i2c`, `_core`). MT6370 is

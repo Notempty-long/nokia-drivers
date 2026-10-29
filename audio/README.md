@@ -29,6 +29,11 @@ That closes the earlier "there is no mt6761 machine driver" question: MT6761 doe
 **not** get its own machine driver. It uses the shared `common_int` one, with
 `mt6765` as the sibling SoC directory. Nothing is missing here.
 
+The code is in the public **Nokia 2.3 V3.311** tarball; provenance and tree path are
+in `../KERNEL_SOURCE.md`, and `../configs/nokia23-mt6761.fragment` enables the
+symbols below. So this subsystem is **already functional** in the vendor kernel —
+the stub in this directory exists only as a probe.
+
 Config that selects it:
 
 ```

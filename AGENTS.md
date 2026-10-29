@@ -7,8 +7,14 @@ Scaffold for Linux driver work on **Nokia** hardware, hosted as
 
 - **No tests, no CI, and nothing has ever been compiled.** `make` has not been run
   on this work; do not claim the modules build.
-- What is tracked: `AGENTS.md`, `.gitignore`, `the devicetree.dts`, a `Makefile`,
-  one `README.md` + one `.c` + one `Kbuild` per subsystem directory.
+- What is tracked: `AGENTS.md`, `KERNEL_SOURCE.md`, `.gitignore`,
+  `the devicetree.dts`, a `Makefile`, `configs/nokia23-mt6761.fragment`, and one
+  `README.md` + one `.c` + one `Kbuild` per subsystem directory.
+- **The working drivers already exist in the vendor tree** — `hxchipset` (touch),
+  `bq24157_charger.c` (ETA6937 charger), `common_int` (audio). Those are the real
+  drivers; the modules here are probes, not a port. `KERNEL_SOURCE.md` maps every
+  subsystem to its source path and config symbol. Wi-Fi is the exception: its driver
+  was moved to `vendor/mediatek/kernel_modules/` and is absent from the tarball.
 - The modules are deliberately inert bring-up probes:
 
   | Module | Binds hardware | Loads firmware |
@@ -32,9 +38,13 @@ Scaffold for Linux driver work on **Nokia** hardware, hosted as
 - **Nokia 2.3**, retail model `TA-1206`, codename `Ironman_00WW` / `IRM_sprout`.
 - SoC **MediaTek MT6761** (Helio A22), device-tree model string `MT6761V/WBB`.
 - Android 11, build `00WW_3_31J` / `00WW_3_310_SP09`, board id `T99621AA1_4`.
-- Reference BSP tree (not the phone's tree, but the same driver code) lives at
-  `C:\n23\src\LINUX\android\kernel` — Linux 4.19.127, `CONFIG_MTK_PLATFORM="mt6761"`,
-  defconfig `k61v1_64_bsp_defconfig`.
+- The vendor kernel source is extracted at
+  `C:\n23\src\LINUX\android\kernel` — Linux 4.19.127, arm64,
+  `CONFIG_MTK_PLATFORM="mt6761"`, defconfig `k61v1_64_bsp_defconfig`. Provenance,
+  URL and per-subsystem paths: `KERNEL_SOURCE.md`.
+- It is the **generic Wingtech/MT6761 tree**, not a product tree: it ships
+  `T99652AA1`/`T99653AA1` defconfigs (other WingTech boards) and **no `T99621AA1`
+  defconfig for this phone**, so product DTS/config still has to be reconstructed.
 - Serial `0123456789ABCDEF`. **Root works via Magisk** (`adb shell su -c '...'`);
   `adb root` does not (production build). `/proc/device-tree` and `modalias` are
   SELinux-blocked for the `shell` user and need `su -c`.
@@ -54,6 +64,9 @@ relevant one before writing code.
 - Host is **Windows**, and `wsl`, `docker`, `make`, `gcc`, `clang` are all absent.
   Kernel modules **cannot be compiled or loaded here** — say so instead of guessing.
   The top-level `Makefile` needs Linux and has never been run.
+- The partial toolchain under `C:\n23\bin` is **arm32 only** (`arm-linux-gnueabi-*`
+  stubs plus `make.exe`); there is no `aarch64` compiler, so it cannot build this
+  arm64 kernel. Do not mistake it for a working build setup.
 - Real work needs Linux: WSL2 or a VM with headers under
   `/lib/modules/$(uname -r)/build`.
 - `.gitignore` covers `platform-tools/`, `*.zip` and kbuild output (`*.ko`, `*.o`,
@@ -71,6 +84,6 @@ relevant one before writing code.
 - HTTPS auth uses Git Credential Manager, already set system-wide
   (`credential.helper=manager`). Pushing still requires being the owner or a
   collaborator of that repo.
-- **`user.name` / `user.email` are not configured.** Commits fail with
-  "Author identity unknown" until set.
+- `user.name` / `user.email` are configured as `Notempty-long` /
+  `196196422+Notempty-long@users.noreply.github.com`; commits work.
 - Empty directories are not tracked: add `.gitkeep` when committing the structure.

@@ -2,16 +2,24 @@
 #
 # Out-of-tree build for the minimal bring-up modules.
 #
-# This needs a Linux host with kernel headers for the *target* kernel:
-#   Ubuntu/Debian:  sudo apt install build-essential linux-headers-$(uname -r)
-# The Windows host this repo is developed on has no compiler at all, so this
-# Makefile cannot run there. See AGENTS.md.
+# Target kernel: Nokia 2.3 V3.311 vendor tree, Linux 4.19.127, arm64
+# (arch/arm64/configs/k61v1_64_bsp_defconfig). See KERNEL_SOURCE.md.
 #
-#   make              build every module
-#   make KDIR=...     build against a specific kernel tree
-#   make clean        remove build output
+# If the vendor tree is extracted locally it is used automatically; otherwise
+# this falls back to the host's installed headers (wrong arch for this phone,
+# but useful for a syntax check).
+#
+# The development host has no arm64 compiler, so this Makefile has never run.
+# See AGENTS.md.
+#
+#   make                     build every module
+#   make KDIR=...            build against a specific kernel tree
+#   make VENDOR_TREE=...     override the auto-detected vendor tree
+#   make clean               remove build output
 
-KDIR ?= /lib/modules/$(shell uname -r)/build
+VENDOR_TREE ?= C:/n23/src/LINUX/android/kernel
+
+KDIR ?= $(if $(wildcard $(VENDOR_TREE)/Makefile),$(VENDOR_TREE),/lib/modules/$(shell uname -r)/build)
 SUBDIRS := touch Wi-Fi PMIC audio
 
 .PHONY: all clean $(SUBDIRS)
