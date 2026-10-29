@@ -84,6 +84,15 @@ sound/soc/mediatek/
 Also noted on the device: `/vendor/lib/modules/mt6357-accdet.ko` is loaded as a
 module, so the jack-detect part is a loadable module while the codec is built in.
 
+## Minimal module
+
+`audio/mt6357_codec_stub.c` is a pure stub — no card, no DAI, no DAPM widget,
+nothing registered. The MT6357 codec takes no firmware, so there is nothing to
+load; it only reports the topology it would drive.
+
+Registering a card here would fight the in-tree `common_int` machine driver that
+already provides `mt-snd-card`.
+
 ## Open questions
 
 1. Whether `aw87519` (external speaker amp) is fitted — the driver exists in the

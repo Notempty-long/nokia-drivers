@@ -3,13 +3,25 @@
 Scaffold for Linux driver work on **Nokia** hardware, hosted as
 `Notempty-long/nokia-drivers`.
 
-## Current state: documentation only
+## Current state: four minimal modules, no working driver
 
-- **No source, no build system, no tests, no CI.** What is tracked: `AGENTS.md`,
-  `.gitignore`, `the devicetree.dts`, and one `README.md` per subsystem directory.
-  Do not invent `make` / test / lint commands — there is nothing to run.
-- The READMEs record a **verified hardware profile** read off a live device on
-  2026-10-29. They are findings, not a port in progress.
+- **No tests, no CI, and nothing has ever been compiled.** `make` has not been run
+  on this work; do not claim the modules build.
+- What is tracked: `AGENTS.md`, `.gitignore`, `the devicetree.dts`, a `Makefile`,
+  one `README.md` + one `.c` + one `Kbuild` per subsystem directory.
+- The modules are deliberately inert bring-up probes:
+
+  | Module | Binds hardware | Loads firmware |
+  |---|---|---|
+  | `touch/hx83102_fw.c` | yes, SPI `mediatek,himax_cap_touch` | yes, `Himax_firmware.bin` |
+  | `Wi-Fi/mt6631_fw.c` | no (plain module) | yes, 5 MT6631 blobs |
+  | `PMIC/mt6357_stub.c` | no | no — block has no firmware |
+  | `audio/mt6357_codec_stub.c` | no | no — codec has no firmware |
+
+  Everything past firmware loading is stubbed with `TODO:` markers. These are not
+  drivers and must not be described as a port.
+- `touch/hx83102_fw.c` claims the same `mediatek,himax_cap_touch` compatible as the
+  in-tree `hxchipset` driver. Never load both.
 - `the devicetree.dts` is a **decompiled** DTB (numeric phandles, no labels) from the
   reference BSP, **not** from this phone. The live device tree differs: it has a
   `spi2@11012000/fts_touch@0` child and a populated `/touch` node, both absent from
@@ -41,10 +53,11 @@ relevant one before writing code.
 
 - Host is **Windows**, and `wsl`, `docker`, `make`, `gcc`, `clang` are all absent.
   Kernel modules **cannot be compiled or loaded here** — say so instead of guessing.
+  The top-level `Makefile` needs Linux and has never been run.
 - Real work needs Linux: WSL2 or a VM with headers under
   `/lib/modules/$(uname -r)/build`.
-- `.gitignore` covers `platform-tools/` and `*.zip` only. Add kernel build output
-  (`*.ko`, `*.o`, `*.mod*`, `Module.symvers`) to it before building anything.
+- `.gitignore` covers `platform-tools/`, `*.zip` and kbuild output (`*.ko`, `*.o`,
+  `*.mod*`, `.*.cmd`, `Module.symvers`, `modules.order`).
 - `adb`/`fastboot` are available at `./platform-tools/` (gitignored, never commit
   them). Use `./platform-tools/adb.exe`, it is not on `PATH`.
 

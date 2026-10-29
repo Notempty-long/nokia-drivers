@@ -179,6 +179,22 @@ What the BSP still lacks is only the product DTS wiring: no Himax node exists in
 is disabled in `.config`. Those two files are stale and must not be used as a
 template.
 
+## Minimal module
+
+`touch/hx83102_fw.c` is a deliberately inert probe: it binds
+`mediatek,himax_cap_touch` on SPI2, calls `request_firmware()` for
+`Himax_firmware.bin`, logs the size and a header hexdump, then stops. No register
+access, no input device, no interrupt handler, no firmware upload.
+
+```
+sudo insmod hx83102_fw.ko                      # defaults are the measured values
+sudo insmod hx83102_fw.ko fw_name=Himax_firmware_lide.bin spi_speed=10000000
+dmesg | grep hx83102_fw
+```
+
+**Do not load it alongside the in-tree `hxchipset` driver** — both claim
+`mediatek,himax_cap_touch`, so whichever probes first owns the device.
+
 ## Open questions
 
 1. **Reset GPIO number.** The DTB only names the states `state_rst_output0/1`, and

@@ -93,6 +93,17 @@ it. The real driver lives in the separate MTK module tree
 source. **Nothing in this repo can be built or tested for Wi-Fi until that tree is
 obtained.**
 
+## Minimal module
+
+`Wi-Fi/mt6631_fw.c` requests the five real blobs (`WMT_SOC.cfg`,
+`WIFI_RAM_CODE_soc1_0_1_1.bin`, `soc1_0_ram_{wifi,mcu,bt}_1_1_hdr.bin`) and holds
+them for the module lifetime, logging size and a header hexdump. No transport, no
+`consys` power-up, no netdev.
+
+It is intentionally a **plain module**, not a driver: registering against
+`mediatek,wifi` or `mediatek,mt6761-consys` would fight the in-tree WMT driver for
+the same node.
+
 ## Open questions
 
 1. Which `soc*` firmware set is live — read `WMT_SOC.cfg` contents.
