@@ -1,4 +1,4 @@
-# ![Nokia 2.3](assets/nokia23.png) Linux Drivers (`nokia-drivers`)
+# Nokia 2.3 Linux Drivers (`nokia-drivers`)
 
 Staging and documentation repository for Linux kernel driver work on the Nokia 2.3 retail model `TA-1206` (codename `Ironman_00WW` / `IRM_sprout`).
 
