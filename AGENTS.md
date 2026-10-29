@@ -84,6 +84,6 @@ relevant one before writing code.
 - HTTPS auth uses Git Credential Manager, already set system-wide
   (`credential.helper=manager`). Pushing still requires being the owner or a
   collaborator of that repo.
-- **`user.name` / `user.email` are not configured.** Commits fail with
-  "Author identity unknown" until set.
+- `user.name` / `user.email` are configured as `Notempty-long` /
+  `196196422+Notempty-long@users.noreply.github.com`; commits work.
 - Empty directories are not tracked: add `.gitkeep` when committing the structure.
