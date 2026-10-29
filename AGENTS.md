@@ -29,8 +29,10 @@ whether mainline drivers already cover the hardware.
   Kernel modules **cannot be compiled or loaded here** — say so instead of guessing.
 - Real work needs Linux: WSL2 or a VM with headers under
   `/lib/modules/$(uname -r)/build`.
-- No `.gitignore` exists yet. Add one before any build output lands, or `*.ko`,
-  `*.o`, `*.mod*`, `Module.symvers` will be committed.
+- `.gitignore` covers `platform-tools/` and `*.zip` only. Add kernel build output
+  (`*.ko`, `*.o`, `*.mod*`, `Module.symvers`) to it before building anything.
+- `adb`/`fastboot` are available at `./platform-tools/` (gitignored, never commit
+  them). Use `./platform-tools/adb.exe`, it is not on `PATH`.
 
 ## Git
 
