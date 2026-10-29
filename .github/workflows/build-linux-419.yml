@@ -13,8 +13,8 @@ jobs:
     timeout-minutes: 45
 
     env:
-      ARCH: arm64
-      CROSS_COMPILE: aarch64-linux-gnu-
+      ARCH: arm
+      CROSS_COMPILE: arm-linux-gnueabihf-
 
     steps:
       - name: Checkout repo
@@ -32,8 +32,8 @@ jobs:
             flex \
             libelf-dev \
             libssl-dev \
-            gcc-aarch64-linux-gnu \
-            binutils-aarch64-linux-gnu
+            gcc-arm-linux-gnueabihf \
+            binutils-arm-linux-gnueabihf
 
       - name: Download Nokia 2.3 vendor kernel source
         shell: bash
@@ -51,7 +51,11 @@ jobs:
         id: kernel
         run: |
           set -e
-          KDIR="$(find "$RUNNER_TEMP/nokia-kernel" -type f -name Makefile | head -n 1 | xargs dirname)"
+          KDIR="$(find "$RUNNER_TEMP/nokia-kernel" -type f -name Makefile -print -quit | xargs -r dirname)"
+          if [ -z "$KDIR" ] || [ ! -f "$KDIR/Makefile" ]; then
+            echo "Kernel Makefile not found under $RUNNER_TEMP/nokia-kernel" >&2
+            exit 1
+          fi
           echo "KDIR=$KDIR" >> "$GITHUB_ENV"
 
       - name: Configure the vendor kernel tree
@@ -59,18 +63,18 @@ jobs:
         run: |
           set -e
           cd "$KDIR"
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- k61v1_64_bsp_defconfig
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- prepare modules_prepare -j"$(nproc)"
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- k61v1_64_bsp_defconfig
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- olddefconfig
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- prepare modules_prepare -j"$(nproc)"
 
       - name: Build vendored drivers against the vendor tree
         shell: bash
         run: |
           set -e
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KDIR="$KDIR" all
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KDIR="$KDIR" all
 
       - name: Clean build outputs
         shell: bash
         run: |
           set -e
-          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KDIR="$KDIR" clean
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- KDIR="$KDIR" clean
