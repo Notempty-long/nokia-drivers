@@ -1,0 +1,214 @@
+name: Build PMOS armv7 kernel with USB gadget + touch + PMIC + phosh/llvmpipe
+
+on:
+  push:
+    branches:
+      - pmos
+  pull_request:
+    branches:
+      - pmos
+  workflow_dispatch:
+
+jobs:
+  build-pmos-kernel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    env:
+      ARCH: arm
+      CROSS_COMPILE: arm-linux-gnueabi-
+      KERNEL_VERSION: 6.12.11
+      LINUX_TARBALL: linux-6.12.11.tar.xz
+      ROOTFS_STAGE: ${{ runner.temp }}/pmos-rootfs
+      PMOS_ARTIFACT: ${{ runner.temp }}/postmarketos-armv7-kernel.tar.gz
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libelf-dev \
+            libssl-dev \
+            curl \
+            cpio \
+            rsync \
+            gcc-arm-linux-gnueabi \
+            binutils-arm-linux-gnueabi
+
+      - name: Download Linux kernel source
+        shell: bash
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/linux-build"
+          cd "$RUNNER_TEMP/linux-build"
+          curl -L --retry 3 --retry-delay 5 \
+            -o "$LINUX_TARBALL" \
+            "https://cdn.kernel.org/pub/linux/kernel/v6.x/${LINUX_TARBALL}"
+          tar -xJf "$LINUX_TARBALL"
+          mv "linux-${KERNEL_VERSION}" linux-src
+          echo "LINUX_DIR=$RUNNER_TEMP/linux-build/linux-src" >> "$GITHUB_ENV"
+
+      - name: Install update to kernel config fragment
+        shell: bash
+        run: |
+          set -e
+          mkdir -p "$GITHUB_WORKSPACE/configs"
+          cat > "$GITHUB_WORKSPACE/configs/postmarketos-armv7-gadget.fragment" <<'EOF'
+          CONFIG_BLK_DEV_INITRD=y
+          CONFIG_INITRAMFS_SOURCE=""
+          CONFIG_DEVTMPFS=y
+          CONFIG_DEVTMPFS_MOUNT=y
+          CONFIG_TMPFS=y
+          CONFIG_OVERLAY_FS=y
+          CONFIG_FUSE_FS=y
+          CONFIG_CGROUPS=y
+          CONFIG_NAMESPACES=y
+          CONFIG_NET=y
+          CONFIG_WIRELESS=y
+          CONFIG_CFG80211=y
+          CONFIG_MAC80211=y
+          CONFIG_DRM=y
+          CONFIG_DRM_FBDEV_EMULATION=y
+          CONFIG_DRM_SIMPLEDRM=y
+          CONFIG_DRM_VIRTIO_GPU=y
+          CONFIG_FRAMEBUFFER_CONSOLE=y
+          CONFIG_FB=y
+          CONFIG_SND=y
+          CONFIG_SOUND=y
+          CONFIG_USB_SUPPORT=y
+          CONFIG_USB_GADGET=y
+          CONFIG_USB_CONFIGFS=y
+          CONFIG_USB_CONFIGFS_ACM=y
+          CONFIG_USB_CONFIGFS_ECM=y
+          CONFIG_USB_CONFIGFS_RNDIS=y
+          CONFIG_USB_CONFIGFS_F_FS=y
+          CONFIG_USB_CONFIGFS_F_UAC1=y
+          CONFIG_USB_CONFIGFS_F_MIDI=y
+          CONFIG_USB_CONFIGFS_F_HID=y
+          CONFIG_USB_CONFIGFS_F_MASS_STORAGE=y
+          CONFIG_USB_CONFIGFS_F_PRINTER=y
+          CONFIG_USB_CONFIGFS_F_UVC=y
+          CONFIG_USB_ETH=y
+          CONFIG_USB_USBNET=y
+          CONFIG_USB_CDC_COMPOSITE=y
+          CONFIG_USB_F_ACM=y
+          CONFIG_USB_F_SERIAL=y
+          CONFIG_USB_F_MASS_STORAGE=y
+          CONFIG_USB_F_FS=y
+          CONFIG_USB_U_SERIAL=y
+          CONFIG_USB_U_ETHER=y
+          CONFIG_USB_G_SERIAL=y
+          CONFIG_USB_G_MULTI=y
+          CONFIG_USB_G_ACM_MS=y
+          CONFIG_USB_G_PRINTER=y
+          CONFIG_USB_G_NCM=y
+          CONFIG_USB_G_ETH=y
+          CONFIG_USB_G_MULTI_CDC=y
+          CONFIG_TOUCHSCREEN_HIMAX_CHIPSET=y
+          CONFIG_TOUCHSCREEN_HIMAX_COMMON=y
+          CONFIG_TOUCHSCREEN_HIMAX_INCELL=y
+          CONFIG_TOUCHSCREEN_HIMAX_IC_HX83102=y
+          CONFIG_MTK_BQ24157_SUPPORT=y
+          CONFIG_MTK_CHARGER=y
+          CONFIG_EXT4_FS=y
+          CONFIG_VFAT_FS=y
+          CONFIG_MSDOS_FS=y
+          CONFIG_PROC_FS=y
+          CONFIG_SYSFS=y
+          CONFIG_HW_RANDOM=y
+          CONFIG_FIRMWARE_IN_KERNEL=y
+          CONFIG_FW_LOADER=y
+          CONFIG_OVERLAY_FS=y
+          CONFIG_DNOTIFY=y
+          CONFIG_VT=y
+          CONFIG_CONSOLE_TRANSLATIONS=y
+          CONFIG_TTY=y
+          CONFIG_SERIAL_8250=y
+          CONFIG_SERIAL_8250_CONSOLE=y
+          CONFIG_INPUT_EVDEV=y
+          CONFIG_DRM_PANEL_BRIDGE=y
+          CONFIG_DRM_KMS_HELPER=y
+          CONFIG_DRM_PANEL=y
+          CONFIG_VIRTIO_MMIO=y
+          CONFIG_VIRTIO_CONSOLE=y
+          CONFIG_VIRTIO_INPUT=y
+          CONFIG_VIRTIO_BALLOON=y
+          CONFIG_VIRTIO_PCI=y
+          EOF
+
+      - name: Configure the armv7 kernel for PMOS, initramfs and gadget support
+        shell: bash
+        run: |
+          set -e
+          cd "$LINUX_DIR"
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- multi_v7_defconfig
+          scripts/kconfig/merge_config.sh -m .config "$GITHUB_WORKSPACE/configs/postmarketos-armv7-gadget.fragment"
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- olddefconfig
+
+      - name: Build the kernel and DTBs
+        shell: bash
+        run: |
+          set -e
+          cd "$LINUX_DIR"
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- zImage modules dtbs -j"$(nproc)"
+
+      - name: Build vendored Nokia touch and PMIC modules
+        shell: bash
+        run: |
+          set -e
+          cd "$LINUX_DIR"
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- M="$GITHUB_WORKSPACE/PMIC/bq24157" modules
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- M="$GITHUB_WORKSPACE/touch/hxchipset" modules
+
+      - name: Stage a minimal PostmarketOS userland manifest for phosh + llvmpipe
+        shell: bash
+        run: |
+          set -e
+          mkdir -p "$ROOTFS_STAGE/usr/share/pmos"
+          cat > "$ROOTFS_STAGE/usr/share/pmos/pmos-packages.txt" <<'EOF'
+          phosh
+          phoc
+          mesa-dri
+          mesa-vulkan-llvmpipe
+          weston
+          xwayland
+          mobile-broadband-provider-info
+          EOF
+          cat > "$ROOTFS_STAGE/usr/share/pmos/README.txt" <<'EOF'
+          PostmarketOS prototype payload for a Nokia 2.3 armv7 target.
+          This is a build artifact and not a complete PMOS rootfs.
+          EOF
+
+      - name: Install modules into stage
+        shell: bash
+        run: |
+          set -e
+          mkdir -p "$ROOTFS_STAGE/lib/modules"
+          cd "$LINUX_DIR"
+          make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- INSTALL_MOD_PATH="$ROOTFS_STAGE" modules_install
+
+      - name: Archive artifacts
+        shell: bash
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/artifacts"
+          cp "$LINUX_DIR/arch/arm/boot/zImage" "$RUNNER_TEMP/artifacts/"
+          find "$LINUX_DIR/arch/arm/boot" -maxdepth 1 -type f \( -name '*.dtb' -o -name '*.dtb.*' \) -exec cp {} "$RUNNER_TEMP/artifacts/" \;
+          tar -C "$RUNNER_TEMP" -czf "$PMOS_ARTIFACT" artifacts pmos-rootfs
+          ls -lh "$RUNNER_TEMP"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pmos-armv7-kernel
+          path: |
+            ${{ runner.temp }}/postmarketos-armv7-kernel.tar.gz
