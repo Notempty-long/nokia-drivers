@@ -22,8 +22,8 @@ VENDOR_TREE ?= C:/n23/src/LINUX/android/kernel
 KDIR ?= $(if $(wildcard $(VENDOR_TREE)/Makefile),$(VENDOR_TREE),/lib/modules/$(shell uname -r)/build)
 
 # touch/hxchipset and PMIC/bq24157 are the real vendor drivers vendored into this
-# repo; Wi-Fi and audio are still probes.
-MODULES := touch/hxchipset PMIC/bq24157 Wi-Fi audio
+# repo; Wi-Fi and audio are intentionally excluded from the default build.
+MODULES := touch/hxchipset PMIC/bq24157
 
 .PHONY: all clean $(MODULES)
 
