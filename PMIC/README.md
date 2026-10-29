@@ -89,6 +89,16 @@ pwrap@1000d000 {
 `ldo_vldo28` is the touch supply (`/touch/vtouch-supply = <&ldo_vldo28>`), and
 `ldo_vcn33_wifi` feeds the connectivity block.
 
+## Minimal module
+
+`PMIC/mt6357_stub.c` is a pure stub — no bus, no `power_supply`, nothing
+registered. It only logs what it would drive, because **the PMIC block has no
+loadable firmware**: registers, battery profile and charger tables are all
+compiled-in data.
+
+An optional `fw_name` parameter exists so a board that later gains a blob
+(battery profile / charger table) can be exercised without editing the file.
+
 ## Open questions
 
 1. Which I²C bus and address the ETA6937 sits on — not present in the reference DTS.
