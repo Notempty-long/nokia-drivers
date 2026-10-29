@@ -1,0 +1,76 @@
+name: Build Nokia 2.3 drivers against vendor kernel
+
+on:
+  push:
+    branches:
+      - main
+      - fix/makefile-skip-audio-wifi
+  pull_request:
+
+jobs:
+  build-nokia-vendor-kernel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      ARCH: arm64
+      CROSS_COMPILE: aarch64-linux-gnu-
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install cross toolchain and build deps
+        shell: bash
+        run: |
+          set -e
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            bc \
+            bison \
+            flex \
+            libelf-dev \
+            libssl-dev \
+            gcc-aarch64-linux-gnu \
+            binutils-aarch64-linux-gnu
+
+      - name: Download Nokia 2.3 vendor kernel source
+        shell: bash
+        run: |
+          set -e
+          mkdir -p "$RUNNER_TEMP/nokia-kernel"
+          cd "$RUNNER_TEMP/nokia-kernel"
+          curl -L --retry 3 --retry-delay 5 \
+            -o Nokia2.3_V3.311.tar.bz2 \
+            https://nokiaphones-opensource.azureedge.net/download/phones/Nokia2.3_V3.311.tar.bz2
+          tar -xjf Nokia2.3_V3.311.tar.bz2
+
+      - name: Locate extracted kernel tree
+        shell: bash
+        id: kernel
+        run: |
+          set -e
+          KDIR="$(find "$RUNNER_TEMP/nokia-kernel" -type f -name Makefile | head -n 1 | xargs dirname)"
+          echo "KDIR=$KDIR" >> "$GITHUB_ENV"
+
+      - name: Configure the vendor kernel tree
+        shell: bash
+        run: |
+          set -e
+          cd "$KDIR"
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- k61v1_64_bsp_defconfig
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- olddefconfig
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- prepare modules_prepare -j"$(nproc)"
+
+      - name: Build vendored drivers against the vendor tree
+        shell: bash
+        run: |
+          set -e
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KDIR="$KDIR" all
+
+      - name: Clean build outputs
+        shell: bash
+        run: |
+          set -e
+          make ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- KDIR="$KDIR" clean
