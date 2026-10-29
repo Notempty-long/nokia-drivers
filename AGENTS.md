@@ -3,31 +3,28 @@
 Scaffold for Linux driver work on **Nokia** hardware, hosted as
 `Notempty-long/nokia-drivers`.
 
-## Current state: four minimal modules, no working driver
+## Current state: two vendored drivers, two probes, nothing compiled
 
 - **No tests, no CI, and nothing has ever been compiled.** `make` has not been run
   on this work; do not claim the modules build.
 - What is tracked: `AGENTS.md`, `KERNEL_SOURCE.md`, `.gitignore`,
-  `the devicetree.dts`, a `Makefile`, `configs/nokia23-mt6761.fragment`, and one
-  `README.md` + one `.c` + one `Kbuild` per subsystem directory.
-- **The working drivers already exist in the vendor tree** — `hxchipset` (touch),
-  `bq24157_charger.c` (ETA6937 charger), `common_int` (audio). Those are the real
-  drivers; the modules here are probes, not a port. `KERNEL_SOURCE.md` maps every
-  subsystem to its source path and config symbol. Wi-Fi is the exception: its driver
-  was moved to `vendor/mediatek/kernel_modules/` and is absent from the tarball.
-- The modules are deliberately inert bring-up probes:
+  `the devicetree.dts`, a `Makefile`, `configs/nokia23-mt6761.fragment`, the
+  vendored drivers under `touch/hxchipset/` and `PMIC/bq24157/`, and a
+  `README.md` + probe per subsystem directory.
+- **`touch/hxchipset/` and `PMIC/bq24157/` are the real vendor drivers**, copied
+  unmodified from the Nokia 2.3 V3.311 tree (SHA-256 verified) with a `Kbuild` of
+  ours. They are not written by this repo and must keep their GPL-2.0 headers and
+  provenance notes.
+- The remaining probes are inert bring-up helpers:
 
-  | Module | Binds hardware | Loads firmware |
+  | Component | Binds hardware | Loads firmware |
   |---|---|---|
-  | `touch/hx83102_fw.c` | yes, SPI `mediatek,himax_cap_touch` | yes, `Himax_firmware.bin` |
-  | `Wi-Fi/mt6631_fw.c` | no (plain module) | yes, 5 MT6631 blobs |
-  | `PMIC/mt6357_stub.c` | no | no — block has no firmware |
-  | `audio/mt6357_codec_stub.c` | no | no — codec has no firmware |
+  | `touch/hxchipset/` (**driver**) | SPI `mediatek,himax_cap_touch` | `Himax_firmware.bin` |
+  | `PMIC/bq24157/` (**driver**) | I²C charger IC (ETA6937/BQ24157) | none |
+  | `Wi-Fi/mt6631_fw.c` (probe) | no (plain module) | 5 MT6631 blobs |
+  | `audio/mt6357_codec_stub.c` (probe) | no | none — codec has no firmware |
 
-  Everything past firmware loading is stubbed with `TODO:` markers. These are not
-  drivers and must not be described as a port.
-- `touch/hx83102_fw.c` claims the same `mediatek,himax_cap_touch` compatible as the
-  in-tree `hxchipset` driver. Never load both.
+  The probes stop at logging; they must not be described as a port.
 - `the devicetree.dts` is a **decompiled** DTB (numeric phandles, no labels) from the
   reference BSP, **not** from this phone. The live device tree differs: it has a
   `spi2@11012000/fts_touch@0` child and a populated `/touch` node, both absent from

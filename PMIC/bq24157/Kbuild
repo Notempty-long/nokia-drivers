@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Out-of-tree build of the vendor charger driver, which is the driver the phone
+# actually runs: one file, three IC variants (ETA6937 / BQ24157 / HL7057),
+# selected at runtime. Its pr_fmt is "[bq2415x]", which is why the kernel log
+# tag looks like the TI driver.
+#
+# Unmodified copies from the Nokia 2.3 V3.311 kernel tree:
+#   drivers/power/supply/bq24157_charger.c
+#   drivers/power/supply/bq24157_reg.h
+# See ../../KERNEL_SOURCE.md. Only this Kbuild is ours.
+#
+# Depends on the MTK charger framework being built into the target kernel
+# (charger_class / charger_device, exported by CONFIG_MTK_CHARGER), and on
+# mtk_charger.h plus linux/hardware_info.h from the vendor tree - hence KDIR must
+# point at the vendor tree, not at stock headers.
+
+ccflags-y += -I$(src)
+ccflags-y += -I$(srctree)/drivers/power/supply
+
+obj-m += bq24157_charger.o

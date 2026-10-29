@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# Out-of-tree build of the vendor Himax HX83102 driver.
+#
+# The .c/.h files in this directory are unmodified copies from the Nokia 2.3
+# V3.311 kernel tree:
+#   drivers/input/touchscreen/mediatek/hxchipset/
+# See ../../KERNEL_SOURCE.md. Only this Kbuild is ours.
+#
+# The vendor tree gates these sources on CONFIG_TOUCHSCREEN_HIMAX_* symbols that
+# an out-of-tree build cannot inherit from KDIR's .config, so they are forced on
+# here. The combination matches the shipping phone: in-cell TDDI, HX83102, with
+# the debug and inspection procfs nodes (/proc/android_touch/diag, self_test).
+#
+# Requires KDIR to point at the vendor tree, because tpd.h lives in
+# drivers/input/touchscreen/mediatek/ and is not part of a stock kernel.
+
+ccflags-y += -I$(src)
+ccflags-y += -I$(srctree)/drivers/input/touchscreen/mediatek
+
+ccflags-y += -DCONFIG_TOUCHSCREEN_HIMAX_DEBUG=1
+ccflags-y += -DCONFIG_TOUCHSCREEN_HIMAX_INSPECT=1
+ccflags-y += -DCONFIG_TOUCHSCREEN_HIMAX_INCELL=1
+ccflags-y += -D__HIMAX_HX83102_MOD__
+
+# Firmware is loaded from /vendor/firmware at runtime, so the embedded-firmware
+# object (Himax_firmware.o, built from Himax_firmware.bin) is not included.
+
+obj-m += himax_mmi.o
+himax_mmi-objs := himax_common.o himax_platform.o himax_debug.o himax_inspection.o himax_ic_incell_core.o himax_ic_HX83102.o

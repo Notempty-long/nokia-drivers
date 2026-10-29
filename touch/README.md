@@ -179,8 +179,8 @@ and the exact config symbols to enable (`TOUCHSCREEN_HIMAX_CHIPSET`,
 `himax_mmi` module loads `Himax_firmware.bin` from `/vendor/firmware` at runtime, so
 the embedded-firmware option stays off unless you want the blob linked in.
 
-That means the stub below is **superseded by working code**: for a functional touch
-stack, enable the vendor driver instead of loading `hx83102_fw.ko`.
+That means the stub that used to live in this directory is **superseded by working
+code**: the driver is vendored here and builds as `himax_mmi.ko`.
 
 What the BSP still lacks is only the product DTS wiring: no Himax node exists in any
 `arch/arm64/boot/dts/mediatek/*.dts{,i}`, and both
@@ -188,21 +188,35 @@ What the BSP still lacks is only the product DTS wiring: no Himax node exists in
 is disabled in `.config`. Those two files are stale and must not be used as a
 template.
 
-## Minimal module
+## The driver lives here now
 
-`touch/hx83102_fw.c` is a deliberately inert probe: it binds
-`mediatek,himax_cap_touch` on SPI2, calls `request_firmware()` for
-`Himax_firmware.bin`, logs the size and a header hexdump, then stops. No register
-access, no input device, no interrupt handler, no firmware upload.
+`touch/hxchipset/` holds the **production driver**, copied unmodified from the
+vendor tree (14 files, SHA-256 verified) plus a `Kbuild` of ours:
 
+| File | Role |
+|---|---|
+| `himax_common.c` | probe, input device, event path, firmware request |
+| `himax_platform.c` | SPI transport, GPIO/IRQ, `spi_driver` + `of_match` |
+| `himax_ic_HX83102.c` | HX83102 register map and power sequence |
+| `himax_ic_incell_core.c` | in-cell / TDDI core |
+| `himax_debug.c`, `himax_inspection.c` | procfs (`/proc/android_touch/...`) and self-test |
+
+It binds `mediatek,himax_cap_touch` over SPI2 and registers as `hxmax_generic` -
+the same driver name the phone runs.
+
+```sh
+make KDIR=C:/n23/src/LINUX/android/kernel touch/hxchipset
+sudo insmod himax_mmi.ko
 ```
-sudo insmod hx83102_fw.ko                      # defaults are the measured values
-sudo insmod hx83102_fw.ko fw_name=Himax_firmware_lide.bin spi_speed=10000000
-dmesg | grep hx83102_fw
-```
 
-**Do not load it alongside the in-tree `hxchipset` driver** — both claim
-`mediatek,himax_cap_touch`, so whichever probes first owns the device.
+`Kbuild` forces on the four `CONFIG_TOUCHSCREEN_HIMAX_*` gates that the vendor
+Makefile uses, because an out-of-tree build cannot inherit them from `KDIR`'s
+`.config`. `tpd.h` comes from the vendor tree's
+`drivers/input/touchscreen/mediatek/`, so `KDIR` must point there.
+
+**It has not been compiled.** See `../KERNEL_SOURCE.md` for the missing arm64
+toolchain. This replaces the earlier `hx83102_fw.c` probe, which claimed the same
+compatible and could not coexist with it.
 
 ## Open questions
 
