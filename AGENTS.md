@@ -5,10 +5,12 @@ Scaffold for Linux driver work on **Nokia** hardware, hosted as
 
 ## Current state: empty
 
-- **No source, no build system, no tests, no CI.** `AGENTS.md` is the only file; the
-  rest is four empty directories. Do not invent `make` / test / lint commands — there
-  is nothing to run.
+- **No source, no build system, no tests, no CI.** Only `AGENTS.md`, `.gitignore` and
+  `the devicetree.dts` are tracked; the four subsystem directories are empty. Do not
+  invent `make` / test / lint commands — there is nothing to run.
 - Don't describe this repo as containing drivers, firmware, or a port in progress.
+- `the devicetree.dts` is a **decompiled** DTB (numeric phandles, no labels) from the
+  target device. Read it for reference only — it cannot be edited and rebuilt.
 
 ## Directory intent
 
@@ -29,8 +31,10 @@ whether mainline drivers already cover the hardware.
   Kernel modules **cannot be compiled or loaded here** — say so instead of guessing.
 - Real work needs Linux: WSL2 or a VM with headers under
   `/lib/modules/$(uname -r)/build`.
-- No `.gitignore` exists yet. Add one before any build output lands, or `*.ko`,
-  `*.o`, `*.mod*`, `Module.symvers` will be committed.
+- `.gitignore` covers `platform-tools/` and `*.zip` only. Add kernel build output
+  (`*.ko`, `*.o`, `*.mod*`, `Module.symvers`) to it before building anything.
+- `adb`/`fastboot` are available at `./platform-tools/` (gitignored, never commit
+  them). Use `./platform-tools/adb.exe`, it is not on `PATH`.
 
 ## Git
 

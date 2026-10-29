@@ -1,0 +1,5 @@
+# Android platform-tools (adb, fastboot) - downloaded binaries, not source
+/platform-tools/
+
+# Downloaded archives
+*.zip
