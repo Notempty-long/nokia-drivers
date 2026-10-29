@@ -134,14 +134,35 @@ the one block this tarball cannot fix. The phone's working binary is
 `/vendor/lib/modules/wlan_drv_gen4m.ko`; recovering source means obtaining the vendor
 `kernel_modules` tree, not the kernel one.
 
+## Vendored into this repo
+
+Copied unmodified — GPL-2.0 headers intact, every file SHA-256 verified against the
+tree:
+
+| Repo path | Vendor path | Files |
+|---|---|---|
+| `touch/hxchipset/` | `drivers/input/touchscreen/mediatek/hxchipset/` | 14 |
+| `PMIC/bq24157/` | `drivers/power/supply/` (`bq24157_charger.c`, `bq24157_reg.h`) | 2 |
+
+Only the `Kbuild` in each directory is ours. It supplies what the in-tree Makefile
+normally gets from `.config`: the `CONFIG_TOUCHSCREEN_HIMAX_*` defines, and the
+include path for `tpd.h` / `mtk_charger.h`.
+
+Not vendored, on purpose:
+
+- **audio** — `common_int/` is ~70 files tied to the kernel's sound subsystem and
+  MTK AFE headers; it only makes sense built in-tree.
+- **Wi-Fi** — the source does not exist in this drop.
+
 ## Building against this tree
 
-Les modules build out-of-tree; the root `Makefile` picks this tree up automatically
+The modules build out-of-tree; the root `Makefile` picks this tree up automatically
 when it exists:
 
 ```powershell
-make                    # uses C:/n23/src/LINUX/android/kernel if present
-make KDIR=D:/other/tree # or point it anywhere
+make                        # uses C:/n23/src/LINUX/android/kernel if present
+make touch/hxchipset        # one component
+make KDIR=D:/other/tree     # or point it anywhere
 ```
 
 **It has not been built, and cannot be on this host.** There is no arm64 compiler:

@@ -111,15 +111,29 @@ pwrap@1000d000 {
 `ldo_vldo28` is the touch supply (`/touch/vtouch-supply = <&ldo_vldo28>`), and
 `ldo_vcn33_wifi` feeds the connectivity block.
 
-## Minimal module
+## The driver lives here now
 
-`PMIC/mt6357_stub.c` is a pure stub — no bus, no `power_supply`, nothing
-registered. It only logs what it would drive, because **the PMIC block has no
-loadable firmware**: registers, battery profile and charger tables are all
-compiled-in data.
+`PMIC/bq24157/` holds the **production charger driver**, copied unmodified from the
+vendor tree (`bq24157_charger.c` + `bq24157_reg.h`), plus a `Kbuild` of ours.
 
-An optional `fw_name` parameter exists so a board that later gains a blob
-(battery profile / charger table) can be exercised without editing the file.
+- One driver, three IC variants: `ETA6937`, `BQ24157`, `HL7057`, picked at runtime.
+- I²C client, `power_supply` + MTK `charger_class` device, kthread polling.
+- `pr_fmt` is `"[bq2415x]"`, so its messages look like the TI driver's.
+
+```sh
+make KDIR=C:/n23/src/LINUX/android/kernel PMIC/bq24157
+sudo insmod bq24157_charger.ko
+```
+
+It needs the MTK charger framework built into the target kernel
+(`CONFIG_MTK_CHARGER`, for `charger_class`/`charger_device`) and `mtk_charger.h`
+from `drivers/power/supply/`, so `KDIR` must be the vendor tree.
+
+**It has not been compiled.** The earlier `mt6357_stub.c` was removed: it
+registered nothing and this is the real driver.
+
+The PMIC itself (MT6357 regulators, gauge, accdet) still has no loadable firmware -
+those are in-tree drivers driven by the product DTS, not by a module here.
 
 ## Open questions
 
